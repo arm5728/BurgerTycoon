@@ -1,3 +1,4 @@
+import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
@@ -11,30 +12,72 @@ public class BurgerMain {
 	private final static int TO_UPPERCASE = 65;
 	private final static int TO_LOWERCASE = 97;
 	private final String letters = "abcdefghijklmnopqrstABCDEFGHIJKLMNOPQRST"; //For 20-size Board
+	private HashMap <String , Restaurant> restaurants = new HashMap <String , Restaurant>();
+	private Report lastDayReport;
 	private String townName;
 	private int money;
+	private final static int RENT = 50;
+	private final static int STAFF_WAGE = 25;
 	private String companyName;
 	private Scanner sc;
 	private int date;
 	private boolean gameActive;
+	private boolean restartGame;
 	
 	//Constructor
-	public BurgerMain() { 
-		sc = new Scanner(System.in);
+	public BurgerMain(Scanner scanner) { 
+		sc = scanner;
 		//size = userIntInput(1, 100, "\n" + "Input A Board Size (1 - 100)");
-		date = 0;
+		date = 1;
 		money = 5000;
 		
 		startGame();
 		
 		//Run Main Game
-//		gameActive = true;
-//		while (gameActive) {
-//			turn();
-//		}
+		gameActive = true;
+		while (gameActive) {
+			menu();
+		}
 		
 		System.out.println("Thanks for Playing Burger Tycoon.");
-		sc.close();
+		restartGame = (userStringInput("Press Any Key to Start New Game.", false) != null);
+	}
+	
+	//Allows game to restart from driver
+	public boolean continueGame() {
+		return restartGame;
+	}
+	
+	private void simulate() {
+		//Overwrite Previous Report
+		lastDayReport = new Report();
+		
+		
+		//Costs
+		for(String restaurant : restaurants.keySet()) {
+			money -= RENT;
+			money -= restaurants.get(restaurant).staff * STAFF_WAGE;
+		}
+		
+		
+		//Simulate Sales
+		for (int row = 0; row < size; row++) {
+			for (int col = 0; col < size; col++) {
+				Tile current = board[row][col];
+				if (current.type == '^' && current.getProximity() != '0' && current.getAwareness() != '0') {
+					//Calculate Attendance Probability
+					double attendanceChance = (charToInt(current.getAwareness()) + (10 - charToInt(current.getProximity()))) / 18.0;
+					
+					//House Decides to Go to Restaurant
+					if (Math.random() < attendanceChance) {
+						money += 5;
+					}
+				}
+			}
+		}
+		
+		date++;
+		viewStatus();
 	}
 	
 	//Main Game Startup Actions
@@ -45,8 +88,7 @@ public class BurgerMain {
 		while (roadCount < 2) {
 			roadCount = constructBoard();
 		}
-		System.out.println("\nWelcome to town!");
-		viewBoard(true);
+		viewBoard(false);
 		
 		//Name Town
 		townName = userStringInput("Give this town a name:", false);
@@ -56,45 +98,11 @@ public class BurgerMain {
 		
 		//Place First Restaurant
 		System.out.println("\n" + companyName + " needs its first restaurant. Place it on an empty tile:");
-		boolean placed = false;
-		boolean first = true;
-		while (!placed) {
-			if (!first) {
-				System.out.println("That tile is occupied. Choose an empty tile.");
-			}
-			first = false;
-			viewBoard(true);
-			
-			int col = (userStringInput("Column:", true).charAt(0)) - TO_LOWERCASE;
-			int row = userIntInput(0, size, "Row:");
-			
-			placed = placeRestaurant(row, col);
-		}	
-		//Place First Restaurant
-		System.out.println("\n" + companyName + " needs its first restaurant. Place it on an empty tile:");
-	    placed = false;
-		first = true;
-		while (!placed) {
-			if (!first) {
-				System.out.println("That tile is occupied. Choose an empty tile.");
-			}
-			first = false;
-			viewBoard(true);
-			
-			int col = (userStringInput("Column:", true).charAt(0)) - TO_LOWERCASE;
-			int row = userIntInput(0, size, "Row:");
-			
-			placed = placeRestaurant(row, col);
-		}	
-		
+		placeRestaurant();
 		System.out.println("\nCongratulations! " + companyName + " has inagurated its first location!");
-		viewBoard(false);
-		viewProximity();
-		
-
+		viewBoard(false);	
 	}
-	
-	
+		
 	//Build Starting Town
 	private int constructBoard() {
 		board = new Tile[size][size];
@@ -114,7 +122,7 @@ public class BurgerMain {
 			if (Math.random() < roadRatio) {
 				roadCount++;
 				for (int col = 0; col < size; col++) {
-					board[row][col].type = '—';
+					board[row][col].type = 'â€”';
 				}
 				row+= 2;
 			}
@@ -125,7 +133,7 @@ public class BurgerMain {
 			if (Math.random() < roadRatio) {
 				roadCount++;
 				for (int row = 0; row < size; row++) {
-					//if (board[row][col].type == '—') {
+					//if (board[row][col].type == 'â€”') {
 					//	board[row][col].type = '+';
 					//} else {
 						board[row][col].type = '|';
@@ -138,7 +146,34 @@ public class BurgerMain {
 		return roadCount;
 	}
 	
+	private void menu() {
+		System.out.println("\n1 - Data Views\n2 - Place New Restaurant\n3 - Simulate Next Day");
+		int input = userIntInput(1, 2, " ");
+		switch (input) {
+			case 1: dataViewMenu();
+				break;
+			case 2: placeRestaurant();
+				break;
+			case 3: simulate();
+				break;
+		}
+	}
+
 	
+	private void dataViewMenu() {
+		System.out.println("\n1 - View Map\n2 - View Awareness\n3 - View Proximity\n4 - Go Back");
+		int input = userIntInput(1, 4, " ");
+		switch (input) {
+			case 1: viewBoard(false);
+				break;
+			case 2: viewAwareness();
+				break;
+			case 3: viewProximity();
+				break;
+			case 4: menu();
+				break;
+		}
+	}
 	
 	//Display the board
 	//True to display selection helper, false otherwise
@@ -168,8 +203,7 @@ public class BurgerMain {
 	private void viewAwareness() {
 		for (int row = 0; row < size; row++) {
 			for (int col = 0; col < size; col++) {
-				System.out.print(board[row][col].getAwareness());
-				System.out.print(" ");
+				System.out.print(board[row][col].getAwareness() + " ");
 			}
 			System.out.print("\n");
 		}
@@ -179,45 +213,48 @@ public class BurgerMain {
 	private void viewProximity() {
 		for (int row = 0; row < size; row++) {
 			for (int col = 0; col < size; col++) { 
-				System.out.print(board[row][col].getProximity());
-				System.out.print(" ");
+				System.out.print(board[row][col].getProximity() + " ");
 			}
 			System.out.print("\n");
 		}
 		System.out.print("\n");
 	}
+
 	
 	//Status bar shown at the beginning of round
 	private void viewStatus() {
-		System.out.println("Day " + date);
+		System.out.println("\nDay " + date);
 		System.out.println(companyName + "   $" + money);
-		
 	}
 	
 	//Place a restaurant on the map
-	//Adjusts Awareness Values appropriately
-	//Return false if restaurant cannot be placed on given tile
-	private boolean placeRestaurant(int row, int col) {
-		
-		//Tile Occupied
-		if (!(board[row][col].type == ' ')) {
-			return false;
-		
-		//Place Restaurant
-		} else {
-			board[row][col].type = 'B';
+	private void placeRestaurant() {
+		boolean placed = false;
+		boolean first = true;
+		while (!placed) {
+			if (!first) {
+				System.out.println("That tile is occupied. Choose an empty tile.");
+			}
 			
+			first = false;
+			viewBoard(true);
+			
+			int col = (userStringInput("Column:", true).charAt(0)) - TO_LOWERCASE;
+			int row = userIntInput(0, size, "Row:");
+			
+			board[row][col].type = 'B';
+				
 			//Change Awareness for Surrounding Area
 			changeAwarenessHelper(row - 2, row + 2, col - 2, col + 2, 1);
 			changeAwarenessHelper(row - 1, row + 1, col - 1, col + 1, 1);	
-			
+				
 			//Change Awareness for road adjacency
 			//Horizontal Below
-			if (row < (size - 1) && board[row + 1][col].type == '—') {
+			if (row < (size - 1) && board[row + 1][col].type == 'â€”') {
 				changeAwarenessHelper(row, row + 2, 0, size - 1, 1);
 			} 
 			//Horizontal Above
-			if (row > 0 && board[row - 1][col].type == '—') {
+			if (row > 0 && board[row - 1][col].type == 'â€”') {
 				changeAwarenessHelper(row - 2, row, 0, size - 1, 1);
 			}
 			//Vertical to the Left
@@ -229,44 +266,56 @@ public class BurgerMain {
 				changeAwarenessHelper(0, size - 1, col, col + 2, 1);
 			}
 			
+			//Add The Restaurant to the Hashmap
+			Restaurant newShop = new Restaurant();
+			restaurants.put(getLocationCode(row, col) , newShop);
+			
 			//Update Proximity
 			calculateProximity();
 			
-			return true;
+			placed = true;
 		}
+		
 	}
 	
 	//Recalculate Proximity Values
 	private void calculateProximity() {
 		for (int row = 0; row < size; row++) {
 			for (int col = 0; col < size; col++) {
-				if (board[row][col].type == '^') {
+				Tile current = board[row][col];
+				if (current.type == '^') {
 					int[] result = {10};
-					calculateProximityHelper(row, col, -2, result);
-					board[row][col].changeProximity(result[0]);
+					int[] location = {0,0};
+					calculateProximityHelper(row, col, -3, result, location);
+					current.changeProximity(result[0]);
+					current.setNearesRestaurant(getLocationCode(location[0], location[1]));
 				}
 			}
 		}
 	}
 	
 	//Recursive Method for Above
-	private void calculateProximityHelper(int row, int col, int distance, int[] result) {
+	private void calculateProximityHelper(int row, int col, int distance, int[] result, int[] location) {
 		//Check bounds
 		if(row < 0 || row >= size || col < 0 || col >= size) {
 			return;
 		}
 		
 		//Update distance
-		if (board[row][col].type == '|' || board[row][col].type == '—' || board[row][col].type == 'B') {
+		if (board[row][col].type == '|' || board[row][col].type == 'â€”' || board[row][col].type == 'B') {
 			distance += 1;
 		} else {
-			distance += 2;
+			distance += 3;
 		}
 		
 		//Base Case 1: At restaurant
 		if (board[row][col].type == 'B') {
 			if (distance < result[0]) {
 				result[0] = distance;
+				
+				//Send back Location of This Restaurant
+				location[0] = row;
+				location[1] = col;
 			}
 			return;
 			
@@ -276,10 +325,10 @@ public class BurgerMain {
 			
 		//Recurse
 		} else {
-			calculateProximityHelper(row + 1, col, distance, result);
-			calculateProximityHelper(row - 1, col, distance, result);
-			calculateProximityHelper(row, col + 1, distance, result);
-			calculateProximityHelper(row, col - 1, distance, result);
+			calculateProximityHelper(row + 1, col, distance, result, location);
+			calculateProximityHelper(row - 1, col, distance, result, location);
+			calculateProximityHelper(row, col + 1, distance, result, location);
+			calculateProximityHelper(row, col - 1, distance, result, location);
 		}
 	}
 	
@@ -293,6 +342,14 @@ public class BurgerMain {
 				}
 			}
 		}
+	}
+	
+	private int charToInt(char input) {
+		return (((int)input) - 48);
+	}
+	
+	private String getLocationCode(int row, int col) {
+		return "" + ((char)(col + TO_UPPERCASE)) + row; 
 	}
 	
 	//Return user input when specifically asking for an Integer.
