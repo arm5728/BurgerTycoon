@@ -2,6 +2,7 @@ public class Tile {
 	public char type;
 	private int awareness;
 	private int proximity;
+	private String nearestRestaurant;
 	
 	public Tile () {
 		type = ' ';
@@ -46,5 +47,13 @@ public class Tile {
 	//Update Proximity Value for this tile
 	public void changeProximity(int value) {
 		proximity = value;
+	}
+	
+	public void setNearesRestaurant(String location) {
+		nearestRestaurant = location;
+	}
+	
+	public String getNearestRestaurant() {
+		return nearestRestaurant;
 	}
 }
