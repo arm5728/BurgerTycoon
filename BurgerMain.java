@@ -1,4 +1,5 @@
-import java.util.HashMap;
+import java.util.TreeMap;
+import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
@@ -7,17 +8,18 @@ public class BurgerMain {
 	//Instance Variables
 	private Tile [][] board;
 	private final static int size = 20;
-	private final static double houseRatio = 0.6;
-	private final static double roadRatio = 0.33;
+	private final static double houseRatio = 0.55;
+	private final static double roadRatio = 0.3;
 	private final static int TO_UPPERCASE = 65;
 	private final static int TO_LOWERCASE = 97;
 	private final String letters = "abcdefghijklmnopqrstABCDEFGHIJKLMNOPQRST"; //For 20-size Board
-	private HashMap <String , Restaurant> restaurants = new HashMap <String , Restaurant>();
-	private Report lastDayReport;
+	private TreeMap <String , Restaurant> restaurants = new TreeMap <String , Restaurant>();
+	private Report yesterdaysReport;
 	private String townName;
 	private int money;
 	private final static int RENT = 50;
 	private final static int STAFF_WAGE = 25;
+	private final static int RESTAURANT_COST = 500;
 	private String companyName;
 	private Scanner sc;
 	private int date;
@@ -50,13 +52,16 @@ public class BurgerMain {
 	
 	private void simulate() {
 		//Overwrite Previous Report
-		lastDayReport = new Report();
+		yesterdaysReport = new Report();
 		
 		
 		//Costs
 		for(String restaurant : restaurants.keySet()) {
 			money -= RENT;
 			money -= restaurants.get(restaurant).staff * STAFF_WAGE;
+			
+			//Write to Report
+			yesterdaysReport.expenses += (RENT + restaurants.get(restaurant).staff * STAFF_WAGE);
 		}
 		
 		
@@ -70,10 +75,29 @@ public class BurgerMain {
 					
 					//House Decides to Go to Restaurant
 					if (Math.random() < attendanceChance) {
-						money += 5;
+						Restaurant location = restaurants.get(current.getNearestRestaurant());
+						location.attendance(1);
+						if (location.staffPointsLeft > 0) {
+							money += 10;
+							yesterdaysReport.revenue += 10; 
+						}
 					}
 				}
 			}
+		}
+		
+		//Write Restaurant Attendance to Report
+		//Reset Staff Points After that
+		for (String location : restaurants.keySet()) {
+			Restaurant restaurant = restaurants.get(location);
+			
+			//Staff Usage Report
+			String performance = restaurant.staffPointsNeeded + "/" + (restaurant.staff * 5);
+			yesterdaysReport.restaurantPerformance.put(location, performance);
+			
+			
+			//Reset Staff Points
+			restaurant.resetStaffPoints();
 		}
 		
 		date++;
@@ -133,11 +157,7 @@ public class BurgerMain {
 			if (Math.random() < roadRatio) {
 				roadCount++;
 				for (int row = 0; row < size; row++) {
-					//if (board[row][col].type == '—') {
-					//	board[row][col].type = '+';
-					//} else {
 						board[row][col].type = '|';
-					//}
 				}
 				col+= 2;
 			}
@@ -147,19 +167,22 @@ public class BurgerMain {
 	}
 	
 	private void menu() {
-		System.out.println("\n1 - Data Views\n2 - Place New Restaurant\n3 - Simulate Next Day");
-		int input = userIntInput(1, 2, " ");
+		System.out.println("\n1 - Yesterday's Report\n2 - Data Views\n3 - Place New Restaurant\n4 - Manage Restaurants\n5 - Simulate Next Day");
+		int input = userIntInput(1, 5, " ");
 		switch (input) {
-			case 1: dataViewMenu();
+			case 1: if (yesterdaysReport != null) {yesterdaysReport.printReport(); };
 				break;
-			case 2: placeRestaurant();
+			case 2: dataViewMenu();
 				break;
-			case 3: simulate();
+			case 3: placeRestaurant();
+				break;
+			case 4: manageRestaurantSelector();
+				break;
+			case 5: simulate();
 				break;
 		}
 	}
 
-	
 	private void dataViewMenu() {
 		System.out.println("\n1 - View Map\n2 - View Awareness\n3 - View Proximity\n4 - Go Back");
 		int input = userIntInput(1, 4, " ");
@@ -173,6 +196,48 @@ public class BurgerMain {
 			case 4: menu();
 				break;
 		}
+	}
+	
+	private void manageRestaurantSelector() {
+		//What Restaurant to Manage
+		System.out.println(companyName + " Locations:");
+		
+		ArrayList<String> choices = new ArrayList<String>();
+		
+		int index = 1;
+		for (String restaurant : restaurants.keySet()) {
+			System.out.println(index + " - " + restaurant);
+			index++;
+			choices.add(restaurant);
+		}
+		
+		int input = userIntInput(1, restaurants.size(), " ");
+		manageRestaurantMenu(restaurants.get(choices.get(input - 1)));	
+	}
+	
+	private void manageRestaurantMenu(Restaurant restaurant) {
+		System.out.println(restaurant.location + "\nStaff: " + restaurant.staff + "   Daily Customer Capacity: " + (restaurant.staff * 5));
+		System.out.println("\n1 - Hire/Fire Staff\n2 - Go Back");
+		int input = userIntInput(1, 2, " ");
+		switch (input) {
+			case 1: adjustStaff(restaurant);
+				break;
+			case 2: menu();
+				break;
+		}
+	}
+	
+	private void adjustStaff(Restaurant restaurant) {
+		System.out.println(restaurant.location + "\nStaff: " + restaurant.staff + "   Daily Customer Capacity: " + (restaurant.staff * 5));
+		System.out.println("\n1 - Hire/Fire Staff\n2 - Cancel");
+		int input = userIntInput(1, 2, " ");
+		switch (input) {
+			case 1: adjustStaff(restaurant);
+				break;
+			case 2: manageRestaurantMenu(restaurant);
+				break;
+		}
+		
 	}
 	
 	//Display the board
@@ -210,6 +275,7 @@ public class BurgerMain {
 		System.out.print("\n");
 	}
 	
+	//Data View: Proximity
 	private void viewProximity() {
 		for (int row = 0; row < size; row++) {
 			for (int col = 0; col < size; col++) { 
@@ -219,63 +285,84 @@ public class BurgerMain {
 		}
 		System.out.print("\n");
 	}
-
+	
+	//Debug data view
+	private void viewClosest() { 	
+		for (int row = 0; row < size; row++) {
+			for (int col = 0; col < size; col++) { 
+				if (board[row][col].type == '^' && !(board[row][col].getNearestRestaurant().equals("A0"))) {
+					System.out.print(board[row][col].getNearestRestaurant());
+					if (board[row][col].getNearestRestaurant().length() == 2) {
+						System.out.print(" ");
+					}
+				} else {
+					System.out.print(" " + board[row][col].type + " ");
+				}
+			}
+			System.out.print("\n");
+		}
+		System.out.print("\n");
+	}
+	
 	
 	//Status bar shown at the beginning of round
 	private void viewStatus() {
 		System.out.println("\nDay " + date);
 		System.out.println(companyName + "   $" + money);
 	}
-	
+
 	//Place a restaurant on the map
 	private void placeRestaurant() {
+		
 		boolean placed = false;
 		boolean first = true;
-		while (!placed) {
+		while (!placed) {	
 			if (!first) {
-				System.out.println("That tile is occupied. Choose an empty tile.");
+				System.out.println("That tile is occupied. Please Choose an Empty Tile.");
 			}
-			
 			first = false;
-			viewBoard(true);
 			
+			viewBoard(true);
 			int col = (userStringInput("Column:", true).charAt(0)) - TO_LOWERCASE;
 			int row = userIntInput(0, size, "Row:");
-			
-			board[row][col].type = 'B';
-				
-			//Change Awareness for Surrounding Area
-			changeAwarenessHelper(row - 2, row + 2, col - 2, col + 2, 1);
-			changeAwarenessHelper(row - 1, row + 1, col - 1, col + 1, 1);	
-				
-			//Change Awareness for road adjacency
-			//Horizontal Below
-			if (row < (size - 1) && board[row + 1][col].type == '—') {
-				changeAwarenessHelper(row, row + 2, 0, size - 1, 1);
-			} 
-			//Horizontal Above
-			if (row > 0 && board[row - 1][col].type == '—') {
-				changeAwarenessHelper(row - 2, row, 0, size - 1, 1);
-			}
-			//Vertical to the Left
-			if (col > 0 && board[row][col - 1].type == '|') {
-				changeAwarenessHelper(0, size - 1, col - 2, col, 1);
-			}
-			//Vertical to the Right
-			if (col < (size - 1) && board[row][col + 1].type == '|') {
-				changeAwarenessHelper(0, size - 1, col, col + 2, 1);
-			}
-			
-			//Add The Restaurant to the Hashmap
-			Restaurant newShop = new Restaurant();
-			restaurants.put(getLocationCode(row, col) , newShop);
-			
-			//Update Proximity
-			calculateProximity();
-			
-			placed = true;
-		}
 		
+			if (board[row][col].type == ' ') {
+				board[row][col].type = 'B';
+				
+				//Change Awareness for Surrounding Area
+				changeAwarenessHelper(row - 2, row + 2, col - 2, col + 2, 1);
+				changeAwarenessHelper(row - 1, row + 1, col - 1, col + 1, 1);	
+				
+				//Change Awareness for road adjacency
+				//Horizontal Below
+				if (row < (size - 1) && board[row + 1][col].type == '—') {
+					changeAwarenessHelper(row, row + 2, 0, size - 1, 1);
+				} 
+				//Horizontal Above
+				if (row > 0 && board[row - 1][col].type == '—') {
+					changeAwarenessHelper(row - 2, row, 0, size - 1, 1);
+				}
+				//Vertical to the Left
+				if (col > 0 && board[row][col - 1].type == '|') {
+					changeAwarenessHelper(0, size - 1, col - 2, col, 1);
+				}
+				//Vertical to the Right
+				if (col < (size - 1) && board[row][col + 1].type == '|') {
+					changeAwarenessHelper(0, size - 1, col, col + 2, 1);
+				}
+					
+				//Add The Restaurant to the Hashmap
+				Restaurant newShop = new Restaurant(getLocationCode(row, col));
+				restaurants.put(getLocationCode(row, col) , newShop);
+					
+				//Update Proximity
+				calculateProximity();
+				
+				money -= RESTAURANT_COST;
+				viewStatus();
+				placed = true;
+			}
+		}
 	}
 	
 	//Recalculate Proximity Values
@@ -332,6 +419,8 @@ public class BurgerMain {
 		}
 	}
 	
+	
+
 	//Change Awareness of a Section, Start and Stop indices inclusive
 	//Avoids OutOfBoundsException
 	private void changeAwarenessHelper(int rowStart, int rowStop, int colStart, int colStop, int change) {
