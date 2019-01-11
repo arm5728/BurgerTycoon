@@ -1,23 +1,23 @@
 
 public class Restaurant {
+	public String location;
 	public int staff;
-	private int staffPointsLeft;
+	public int staffPointsLeft;
+	public int staffPointsNeeded;
 	
-	public Restaurant() {
+	public Restaurant(String location) {
 		staff = 2;
 		resetStaffPoints();
+		this.location = location;
 	}
 	
 	public void resetStaffPoints() {
 		staffPointsLeft = staff * 5;
-	}
-	
-	public int getStaffPointsLeft() {
-		return staffPointsLeft;
+		staffPointsNeeded = 0;
 	}
 	
 	public void attendance(int people) {
 		staffPointsLeft -= people;
+		staffPointsNeeded += people;
 	}
-	
 }
