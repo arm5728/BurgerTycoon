@@ -8,6 +8,7 @@ public class Tile {
 		type = ' ';
 		awareness = 0;
 		proximity = 0;
+		nearestRestaurant = "A0";
 	}
 	
 	//Get awareness value for house, or tile type otherwise
