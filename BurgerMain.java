@@ -20,6 +20,8 @@ public class BurgerMain {
 	private final static int RENT = 50;
 	private final static int STAFF_WAGE = 25;
 	private final static int RESTAURANT_COST = 500;
+	private final static int STAFF_HIRE_COST = 50;
+	private final static int SEVERANCE_COST = 20;
 	private String companyName;
 	private Scanner sc;
 	private int date;
@@ -167,10 +169,15 @@ public class BurgerMain {
 	}
 	
 	private void menu() {
-		System.out.println("\n1 - Yesterday's Report\n2 - Data Views\n3 - Place New Restaurant\n4 - Manage Restaurants\n5 - Simulate Next Day");
+		System.out.println("\n~~~ MAIN MENU ~~~\n1 - Yesterday's Report\n2 - Data Views\n3 - Place New Restaurant\n4 - Manage Restaurants\n5 - Simulate Next Day");
 		int input = userIntInput(1, 5, " ");
 		switch (input) {
-			case 1: if (yesterdaysReport != null) {yesterdaysReport.printReport(); };
+			case 1:
+				if (yesterdaysReport == null) {
+					System.out.println("First Day Not Simulated Yet- No Report!");
+				} else {
+					yesterdaysReport.printReport(); 
+				};
 				break;
 			case 2: dataViewMenu();
 				break;
@@ -184,7 +191,7 @@ public class BurgerMain {
 	}
 
 	private void dataViewMenu() {
-		System.out.println("\n1 - View Map\n2 - View Awareness\n3 - View Proximity\n4 - Go Back");
+		System.out.println("\n~~ DATA VIEWS ~~\n1 - View Map\n2 - View Awareness\n3 - View Proximity\n4 - Go Back");
 		int input = userIntInput(1, 4, " ");
 		switch (input) {
 			case 1: viewBoard(false);
@@ -200,7 +207,7 @@ public class BurgerMain {
 	
 	private void manageRestaurantSelector() {
 		//What Restaurant to Manage
-		System.out.println(companyName + " Locations:");
+		System.out.println("\n~~ SELECT RESTAURANT ~~\n" + companyName + " Locations:");
 		
 		ArrayList<String> choices = new ArrayList<String>();
 		
@@ -216,7 +223,7 @@ public class BurgerMain {
 	}
 	
 	private void manageRestaurantMenu(Restaurant restaurant) {
-		System.out.println(restaurant.location + "\nStaff: " + restaurant.staff + "   Daily Customer Capacity: " + (restaurant.staff * 5));
+		System.out.println("~ MANAGE " + restaurant.location + " ~");
 		System.out.println("\n1 - Hire/Fire Staff\n2 - Go Back");
 		int input = userIntInput(1, 2, " ");
 		switch (input) {
@@ -228,14 +235,23 @@ public class BurgerMain {
 	}
 	
 	private void adjustStaff(Restaurant restaurant) {
-		System.out.println(restaurant.location + "\nStaff: " + restaurant.staff + "   Daily Customer Capacity: " + (restaurant.staff * 5));
-		System.out.println("\n1 - Hire/Fire Staff\n2 - Cancel");
-		int input = userIntInput(1, 2, " ");
-		switch (input) {
-			case 1: adjustStaff(restaurant);
-				break;
-			case 2: manageRestaurantMenu(restaurant);
-				break;
+		System.out.println(" ~ " + restaurant.location + "STAFF MANAGEMENT ~");
+		boolean loop = true;
+		while (loop) {
+			System.out.println(restaurant.location + "\nStaff: " + restaurant.staff + "   Daily Customer Capacity: " + (restaurant.staff * 5));
+			System.out.println("\n1 - Hire 1 Employee ($" + STAFF_HIRE_COST + " To Hire, $" + STAFF_WAGE + " Weekly Salary)\n2 - Fire 1 Employee ($" + SEVERANCE_COST + " Severance)\n3 - Go Back");
+			int input = userIntInput(1, 3, " ");
+			switch (input) {
+				case 1: restaurant.staff++;
+					money -= STAFF_HIRE_COST;
+					break;
+				case 2: restaurant.staff--;
+					money -= SEVERANCE_COST;
+					break;
+				case 3: loop = false;
+					manageRestaurantMenu(restaurant);
+					break;
+			}
 		}
 		
 	}
@@ -243,6 +259,9 @@ public class BurgerMain {
 	//Display the board
 	//True to display selection helper, false otherwise
 	private void viewBoard(boolean selection) {
+		if (townName != null) {
+			System.out.println("\n" + townName + ":");
+		}
 		if (selection) {
 			System.out.print("\n");
 			for (int row = 0; row < size; row++) {
@@ -266,6 +285,7 @@ public class BurgerMain {
 	
 	//Data View: Awareness
 	private void viewAwareness() {
+		System.out.println("~ AWARENESS ~");
 		for (int row = 0; row < size; row++) {
 			for (int col = 0; col < size; col++) {
 				System.out.print(board[row][col].getAwareness() + " ");
@@ -277,6 +297,7 @@ public class BurgerMain {
 	
 	//Data View: Proximity
 	private void viewProximity() {
+		System.out.println("~ PROXIMITY ~");
 		for (int row = 0; row < size; row++) {
 			for (int col = 0; col < size; col++) { 
 				System.out.print(board[row][col].getProximity() + " ");
