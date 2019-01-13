@@ -17,7 +17,11 @@ public class BurgerMain {
 	private Report yesterdaysReport;
 	private String townName;
 	private int money;
+	private int bankruptcyTicker;
+	private final static int STARTING_MONEY = 1000;
+	private final static int BANKRUPTCY_LIMIT = 7;
 	private final static int RENT = 50;
+	private final static int STAFF_WORK = 5;
 	private final static int STAFF_WAGE = 25;
 	private final static int RESTAURANT_COST = 500;
 	private final static int STAFF_HIRE_COST = 50;
@@ -31,9 +35,9 @@ public class BurgerMain {
 	//Constructor
 	public BurgerMain(Scanner scanner) { 
 		sc = scanner;
-		//size = userIntInput(1, 100, "\n" + "Input A Board Size (1 - 100)");
 		date = 1;
-		money = 5000;
+		money = STARTING_MONEY;
+		bankruptcyTicker = BANKRUPTCY_LIMIT;
 		
 		startGame();
 		
@@ -75,11 +79,14 @@ public class BurgerMain {
 					//Calculate Attendance Probability
 					double attendanceChance = (charToInt(current.getAwareness()) + (10 - charToInt(current.getProximity()))) / 18.0;
 					
+					//DEBUG
+					//System.out.println(getLocationCode(row, col) + ": " + attendanceChance);
+					
 					//House Decides to Go to Restaurant
 					if (Math.random() < attendanceChance) {
 						Restaurant location = restaurants.get(current.getNearestRestaurant());
 						location.attendance(1);
-						if (location.staffPointsLeft > 0) {
+						if (location.staffPointsLeft >= 0) {
 							money += 10;
 							yesterdaysReport.revenue += 10; 
 						}
@@ -94,7 +101,13 @@ public class BurgerMain {
 			Restaurant restaurant = restaurants.get(location);
 			
 			//Staff Usage Report
-			String performance = restaurant.staffPointsNeeded + "/" + (restaurant.staff * 5);
+			String performance = "";
+			if (restaurant.visitors > restaurant.staff * STAFF_WORK) {
+				performance = restaurant.visitors + " Visitors / Over Capacity! (" + restaurant.staff * STAFF_WORK + ")";
+			} else {
+				performance = restaurant.visitors + " Visitors / All Served.";
+			}
+				
 			yesterdaysReport.restaurantPerformance.put(location, performance);
 			
 			
@@ -104,6 +117,26 @@ public class BurgerMain {
 		
 		date++;
 		viewStatus();
+		
+		//Check for Bankruptcy or Recovery From Bankruptcy
+		if (money >= 0) {		
+			bankruptcyTicker = BANKRUPTCY_LIMIT;
+		} else {
+			bankruptcy();
+		}
+	}
+	
+	private void bankruptcy() {
+
+		if (bankruptcyTicker == BANKRUPTCY_LIMIT) {
+			System.out.println("You are in debt! You have " + BANKRUPTCY_LIMIT + " days to clear it.");
+		} else if (bankruptcyTicker == 0) { 
+			System.out.println("You have gone bankrupt!");
+			gameActive = false;
+		} else {
+			System.out.println("You are still in debt! You have " + bankruptcyTicker + " days to clear it");
+		}
+		bankruptcyTicker--;
 	}
 	
 	//Main Game Startup Actions
@@ -169,8 +202,8 @@ public class BurgerMain {
 	}
 	
 	private void menu() {
-		System.out.println("\n~~~ MAIN MENU ~~~\n1 - Yesterday's Report\n2 - Data Views\n3 - Place New Restaurant\n4 - Manage Restaurants\n5 - Simulate Next Day");
-		int input = userIntInput(1, 5, " ");
+		System.out.println("\n~~~ MAIN MENU ~~~\n1 - Yesterday's Report   \t2 - Data Views\n3 - Place New Restaurant   \t4 - Manage Restaurants\n5 - Marketing   \t\t6 - Simulate Next Day");
+		int input = userIntInput(1, 6, " ");
 		switch (input) {
 			case 1:
 				if (yesterdaysReport == null) {
@@ -185,13 +218,15 @@ public class BurgerMain {
 				break;
 			case 4: manageRestaurantSelector();
 				break;
-			case 5: simulate();
+			case 5: marketingMenu();
+				break;
+			case 6: simulate();
 				break;
 		}
 	}
 
 	private void dataViewMenu() {
-		System.out.println("\n~~ DATA VIEWS ~~\n1 - View Map\n2 - View Awareness\n3 - View Proximity\n4 - Go Back");
+		System.out.println("\n~~ DATA VIEWS ~~\n1 - View Map\t\t2 - View Brand Awareness\n3 - View Proximity\t4 - Go Back");
 		int input = userIntInput(1, 4, " ");
 		switch (input) {
 			case 1: viewBoard(false);
@@ -203,6 +238,10 @@ public class BurgerMain {
 			case 4: menu();
 				break;
 		}
+	}
+	
+	private void marketingMenu() {
+		System.out.println("~~ MARKETING ~~"); 
 	}
 	
 	private void manageRestaurantSelector() {
@@ -224,18 +263,6 @@ public class BurgerMain {
 	
 	private void manageRestaurantMenu(Restaurant restaurant) {
 		System.out.println("~ MANAGE " + restaurant.location + " ~");
-		System.out.println("\n1 - Hire/Fire Staff\n2 - Go Back");
-		int input = userIntInput(1, 2, " ");
-		switch (input) {
-			case 1: adjustStaff(restaurant);
-				break;
-			case 2: menu();
-				break;
-		}
-	}
-	
-	private void adjustStaff(Restaurant restaurant) {
-		System.out.println(" ~ " + restaurant.location + "STAFF MANAGEMENT ~");
 		boolean loop = true;
 		while (loop) {
 			System.out.println(restaurant.location + "\nStaff: " + restaurant.staff + "   Daily Customer Capacity: " + (restaurant.staff * 5));
@@ -244,16 +271,17 @@ public class BurgerMain {
 			switch (input) {
 				case 1: restaurant.staff++;
 					money -= STAFF_HIRE_COST;
+					restaurant.resetStaffPoints();
 					break;
 				case 2: restaurant.staff--;
 					money -= SEVERANCE_COST;
+					restaurant.resetStaffPoints();
 					break;
 				case 3: loop = false;
-					manageRestaurantMenu(restaurant);
+					menu();
 					break;
 			}
 		}
-		
 	}
 	
 	//Display the board
@@ -285,7 +313,7 @@ public class BurgerMain {
 	
 	//Data View: Awareness
 	private void viewAwareness() {
-		System.out.println("~ AWARENESS ~");
+		System.out.println("~ BRAND AWARENESS ~");
 		for (int row = 0; row < size; row++) {
 			for (int col = 0; col < size; col++) {
 				System.out.print(board[row][col].getAwareness() + " ");
