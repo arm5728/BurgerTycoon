@@ -1,9 +1,10 @@
 
 public class Restaurant {
+	private final static int STAFF_WORK = 5;
 	public String location;
 	public int staff;
 	public int staffPointsLeft;
-	public int staffPointsNeeded;
+	public int visitors;
 	
 	public Restaurant(String location) {
 		staff = 2;
@@ -12,12 +13,12 @@ public class Restaurant {
 	}
 	
 	public void resetStaffPoints() {
-		staffPointsLeft = staff * 5;
-		staffPointsNeeded = 0;
+		staffPointsLeft = staff * STAFF_WORK;
+		visitors = 0;
 	}
 	
 	public void attendance(int people) {
 		staffPointsLeft -= people;
-		staffPointsNeeded += people;
+		visitors += people;
 	}
 }
