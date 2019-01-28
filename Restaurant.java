@@ -7,7 +7,7 @@ public class Restaurant {
 	public int visitors;
 	
 	public Restaurant(String location) {
-		staff = 2;
+		staff = 1;
 		resetStaffPoints();
 		this.location = location;
 	}
