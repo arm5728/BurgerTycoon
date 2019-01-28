@@ -3,12 +3,14 @@ public class Tile {
 	private int awareness;
 	private int proximity;
 	private String nearestRestaurant;
+	private int members;
 	
 	public Tile () {
 		type = ' ';
 		awareness = 0;
 		proximity = 0;
 		nearestRestaurant = "A0";
+		members = 0;
 	}
 	
 	//Get awareness value for house, or tile type otherwise
@@ -56,5 +58,18 @@ public class Tile {
 	
 	public String getNearestRestaurant() {
 		return nearestRestaurant;
+	}
+	
+	public void setMembers(int people) {
+		members = people;
+	}
+	
+	//Returns number of people in Household
+	public char getMembers() {
+		if (type == '^') {
+			return (char) (members + 48);
+		} else {
+			return type;
+		}
 	}
 }
