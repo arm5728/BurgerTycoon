@@ -5,6 +5,7 @@ public class Report {
 	public int revenue;
 	public int expenses;
 	public TreeMap<String, String> restaurantPerformance;
+	public ArrayList<String> expenseBreakdown;
 	public ArrayList<String> news;
 	
 	public Report() {
@@ -12,14 +13,15 @@ public class Report {
 		expenses = 0;
 		restaurantPerformance = new TreeMap<String, String>();
 		news = new ArrayList<String>();
+		expenseBreakdown = new ArrayList<String>();
 	}
 	
 	public void printReport() {
 		//Main
 		System.out.println("~~ YESTERDAY'S REPORT ~~");
-		System.out.println("Profit/Loss: " + (revenue - expenses));
-		System.out.println("Revenue: " + revenue);
-		System.out.println("Expenses: " + expenses);
+		System.out.println("Profit/Loss: \t" + (revenue - expenses));
+		System.out.println("Revenue: \t" + revenue);
+		System.out.println("Expenses: \t" + expenses);
 		
 		//Restaurant Reports
 		System.out.println("Restaurant Performance: ");
@@ -29,10 +31,17 @@ public class Report {
 		
 		//News
 		if (!news.isEmpty()) {
-			System.out.println("News:");
+			System.out.println("!!!  News:  !!!");
 			for (String newsItem: news) {
 				System.out.println("\t" + newsItem);			
 			}
 		}
 	}	
+	
+	public void expenseBreakdown() {
+		System.out.println("~ EXPENSES: ~");
+		for (String expense: expenseBreakdown) {
+			System.out.println(expense);
+		}
+	}
 }
