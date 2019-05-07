@@ -1,4 +1,4 @@
 # BurgerTycoon
 Adrian Melendez Relli
 
-Complex Text-Based Business Management Game. I wish I could make digital art.
+Text-Based Business Management Game. Strategically deep but naturally kind of a pain to look at.
