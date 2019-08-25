@@ -16,6 +16,7 @@ public class BurgerMain {
 	private Scanner sc;
 	private final static int TO_UPPERCASE = 65;
 	private final static int TO_LOWERCASE = 97;
+	private final static int TO_INT = 48;
 	
 	//Board Variables & Constants
 	private Tile [][] board;
@@ -23,6 +24,7 @@ public class BurgerMain {
 	private final static double ROAD_RATIO = 0.3;
 	private final static int BOARD_SIZE = 20;
 	private final static String LETTERS = "abcdefghijklmnopqrstABCDEFGHIJKLMNOPQRST"; //20 possible letters for a 20-size Board
+	private final static int TRAVERSAL_COST = 4;
 	
 	//Game Variables & Constants
 	private int money;
@@ -43,18 +45,24 @@ public class BurgerMain {
 	private int campaignPayment;
 	private int campaignEffect;
 	private final static int INTERNET_AD_COST = 25;
-	private final static int MAGAZINE_AD_COST = 50;
-	private final static int RADIO_AD_COST = 100;
-	private final static int TV_AD_COST = 250;
+	private final static int RADIO_AD_COST = 150;
+	private final static int TV_AD_COST = 500;
 	private final static int CAMPAIGN_DURATION = 5;
+	private final static int BILLBOARD_PLACE_COST = 25;
+	private final static int BILLBOARD_MAINTENANCE_COST = 10;
+	private final static int MAILBOX_PLACE_COST = 25;
+	private final static int MAILBOX_MAINTENANCE_COST = 50;
+	private int billboardMaintenance;
+	private int mailboxMaintenance;
+	private TreeMap <String, String> advertisements = new TreeMap <String, String>();
 
 	//Bank Variables & Constants
 	private int owedToBank;
-	private int creditRating;
+	private double creditRating;
 	private double loanPayments;
 	private int loanPaymentsRemaining;
 	private int bankruptcyTicker;
-	private final static int STARTING_CREDIT_RATING = 10;
+	private final static double STARTING_CREDIT_RATING = 10.0;
 	private final static double CREDIT_VALUE = 100.0;
 	private final static double LOAN_TIME = 10.0;
 	private final static double INTEREST_RATE = 1.20;
@@ -74,7 +82,8 @@ public class BurgerMain {
 		campaignPayment = 0;
 		owedToBank = 0;
 		loanPayments = 0;
-
+		billboardMaintenance = 0;
+		mailboxMaintenance = 0;
 		
 		//Initial Actions
 		startGame();
@@ -128,24 +137,43 @@ public class BurgerMain {
 		if (loanPaymentsRemaining != 0) {
 			yesterdaysReport.expenses += loanPayments;
 			loanPaymentsRemaining--;
-			yesterdaysReport.news.add("Loan Payments Remaining: " + loanPaymentsRemaining + " at $" + (int)loanPayments + " each");
+			if (loanPaymentsRemaining != 0) {
+				yesterdaysReport.news.add("Loan Payments Remaining: " + loanPaymentsRemaining + " at $" + (int)loanPayments + " each");
+			} else {
+				yesterdaysReport.news.add("Loan repayment complete.");
+			}
 		} else {
 			loanPayments = 0;
 			owedToBank = 0;
 		}
 		
-		//Marketing
+		//Media Campaign
 		if (campaignTicker != 0) {
 			money -= campaignPayment;
 			yesterdaysReport.expenses += campaignPayment;
+		}
+		
+		//Billboards
+		if (billboardMaintenance != 0) {
+			money -= billboardMaintenance;
+			yesterdaysReport.expenses += billboardMaintenance;
+			yesterdaysReport.expenseBreakdown.add("Billboards: \t$" + billboardMaintenance);
+		}
+		
+		//Mailboxes
+		if (mailboxMaintenance != 0) {
+			money -= mailboxMaintenance;
+			yesterdaysReport.expenses += mailboxMaintenance;
+			yesterdaysReport.expenseBreakdown.add("Mailboxes: \t$" + mailboxMaintenance);
 		}
 		
 		//Write to ExpenseBreakdown
 		yesterdaysReport.expenseBreakdown.add("Rent: \t\t$" + totalRent);
 		yesterdaysReport.expenseBreakdown.add("Wages: \t\t$" + totalWages);
 		if(campaignPayment != 0) {
-			yesterdaysReport.expenseBreakdown.add("Marketing: \t$" + campaignPayment);			
-		} else if (owedToBank != 0) {
+			yesterdaysReport.expenseBreakdown.add("Media Campaign: \t$" + campaignPayment);			
+		} 
+		if(owedToBank != 0) {
 			yesterdaysReport.expenseBreakdown.add("Loan Payments: \t$" + (int)loanPayments);
 		}
 		
@@ -273,7 +301,9 @@ public class BurgerMain {
 		
 		//Place First Restaurant
 		System.out.println("\n" + companyName + " needs its first restaurant. Place it on an empty tile:");
-		placeRestaurant(true);
+		String message = "- Building a Restaurant Costs $" + RESTAURANT_COST + ". Rent is $" + RENT + "/day.\n- Comes with 1 Staff Member, costing $" + STAFF_WAGE +
+				"/day in wages.\n- Brand Awareness increases in the area surrounding the restaurant, \n  as well as in all houses sharing the same road(s).";
+		placeTile(true, message, "Restaurant", 'B');
 		System.out.println("\nCongratulations! " + companyName + " has inagurated its first location!");
 		viewBoard(false);	
 	}
@@ -320,19 +350,20 @@ public class BurgerMain {
 				if (board[row][col].type == '^') {
 					double rng = Math.random();
 					int members;
-					if (rng >= 0 && rng <= 0.33) {
+					//Proportions modeled on US Census data
+					if (rng >= 0 && rng <= 0.28) {
 						members = 1;
-					} else if (rng > 0.33 && rng <= 0.66) {
+					} else if (rng > 0.28 && rng <= 0.625) {
 						members = 2;
-					} else if (rng > 0.66 && rng <= 0.8) {
+					} else if (rng > 0.625 && rng <= 0.777) {
 						members = 3;
-					} else if (rng > 0.8 && rng <= 0.9) {
+					} else if (rng > 0.777 && rng <= 0.906) {
 						members = 4;
-					} else if (rng > 0.9 && rng <= 0.975) {
+					} else if (rng > 0.906 && rng <= 0.964) {
 						members = 5;
-					} else if (rng > 0.975 && rng <= 0.990) {
+					} else if (rng > 0.964 && rng <= 0.986) {
 						members = 6;
-					} else if (rng > 0.990 && rng <= 0.995) {
+					} else if (rng > 0.986 && rng <= 0.995) {
 						members = 7;
 					} else if (rng > 0.995 && rng <= 0.9985) {
 						members = 8;
@@ -361,7 +392,7 @@ public class BurgerMain {
 				break;
 			case 2: dataViewMenu();
 				break;
-			case 3: placeRestaurant(false);
+			case 3: placeTile(false, "Build Cost: $" + RESTAURANT_COST + " Rent: $" + RENT + "/day.", "Restaurant", 'B');
 				break;
 			case 4: manageRestaurantSelector();
 				break;
@@ -377,10 +408,12 @@ public class BurgerMain {
 	}
 	
 	private void bank() {
-		System.out.print("\n~~ BANK ~~\nCredit Rating: " + creditRating + "\t\tMoney Owed: $" + owedToBank + 
+		System.out.print("\n~~ BANK ~~\nCredit Rating: " + String.format("%.2f", creditRating) + "\t\tMoney Owed: $" + owedToBank + 
 				"\n1 - Take Out A Loan\t\t2 - Repay Loan (Save $" + (owedToBank - (int)(owedToBank/INTEREST_RATE)) + " By Paying Early)\n3 - Go Back");
 		if(tutorial) {
-			System.out.println("\n\n- Borrow money to finance your expansion or save you from bankruptcy\n- Higher Credit Ratings Allow You to Borrow More.\n- Repaying Loans Through Installents Improves Your Credit Rating.\n- Loan Installments must be paid daily\n- Repaying a loan manually is cheaper than paying it off through installments");
+			System.out.println("\n\n- Borrow money to finance your expansion or save you from bankruptcy\n- Higher Credit Ratings Allow You to Borrow More."
+					+ "\n- Repaying Loans Through Installents Improves Your Credit Rating."
+					+ "\n- Loan Installments must be paid daily\n- Repaying a loan in a lump sum is cheaper than paying it off through installments");
 		}
 		int input = userIntInput(1, 3, " ");
 		switch (input) {
@@ -468,13 +501,13 @@ public class BurgerMain {
 	}
 	
 	private void marketingMenu() {
-		System.out.println("~~ MARKETING ~~\n1 - Media Campaign (Global Effect)\n2 - Go Back"); 
+		System.out.println("~~ MARKETING ~~\n1 - Media Advertisement \n2 - Physical Advertisement \n3 - Go Back"); 
 		if (tutorial) {
 			System.out.println("\n- Marketing raises brand awareness, making people visit your restaurants more.");
 		}
-		int input = userIntInput(1, 2, " ");
+		int input = userIntInput(1, 3, " ");
 		switch (input) {
-			case 1: //Media Campaign
+			case 1: //Media Advertisement
 				if (campaignTicker == 0) {
 					mediaAdvertisement();
 				} else {
@@ -482,28 +515,28 @@ public class BurgerMain {
 					marketingMenu();
 				}
 				break;
-			case 2: menu();
+			case 2: //Physical Advertisement
+				physicalAdvertisement();
+			case 3: menu();
 				break;
 		}
 	}
 	
 	private void mediaAdvertisement() {
-		System.out.println("\n~ MEDIA ADVERTISING ~\n" + "1 - Website Banners \t(+1 Global Brand Awareness, $" + INTERNET_AD_COST + "/week)\n2 - Magazine Column \t(+2 Global Brand Awareness, $" + MAGAZINE_AD_COST + "/week)"
-				+ "\n3 - Radio Segment \t(+3 Global Brand Awareness, $" + RADIO_AD_COST + "/week)\n4 - Primetime TV Spot \t(+5 Global Brand Awareness, $" + TV_AD_COST + "/week)\n5 - Go Back.");
+		System.out.println("\n~ MEDIA ADVERTISING ~\n1 - Website Banners \t(+1 Global Brand Awareness, $" + INTERNET_AD_COST + "/day)"
+				+ "\n2 - Radio Segment \t(+3 Global Brand Awareness, $" + RADIO_AD_COST + "/day)\n3 - Primetime TV Spot \t(+5 Global Brand Awareness, $" + TV_AD_COST + "/day)\n4 - Go Back.");
 		if (tutorial) {
-			System.out.println("\n- Each campaign has a duration of " + CAMPAIGN_DURATION + " days\n- Media Campaigns raise the brand awareness of ALL houses by a constant value\n- Only 1 media campaign may run at once.");
+			System.out.println("\n- Media Campaigns raise the brand awareness of ALL houses by a constant value.\n- Each media campaign has a duration of " + CAMPAIGN_DURATION + " days\n- Only one media campaign can run at once.");
 		}
-		int input = userIntInput(1, 5, " ");
+		int input = userIntInput(1, 4, " ");
 		switch(input) {
 			case 1: startMediaAdvertisement("Website Banners", INTERNET_AD_COST, 1);
 				break;
-			case 2: startMediaAdvertisement("Magazine Column", MAGAZINE_AD_COST, 2);
+			case 2: startMediaAdvertisement("Radio Segment", RADIO_AD_COST, 3);
 				break;
-			case 3: startMediaAdvertisement("Radio Segment", RADIO_AD_COST, 3);
+			case 3: startMediaAdvertisement("Primetime TV Spot", TV_AD_COST, 5);
 				break;
-			case 4: startMediaAdvertisement("Primetime TV Spot", TV_AD_COST, 5);
-				break;
-			case 5: menu();
+			case 4: marketingMenu();
 				break;
 		}
 		
@@ -518,13 +551,70 @@ public class BurgerMain {
 		System.out.println(campaignType + " campaign launched.");
 	}
 	
+	private void physicalAdvertisement() {
+		System.out.println("\n~ PHYSICAL ADVERTISING ~\n1 - Place Billboard (Placement: $" + BILLBOARD_PLACE_COST + ", Maintenance: $" + BILLBOARD_MAINTENANCE_COST + "/day)"
+				+ "\n2 - Place Mailbox   (Placement: $" + MAILBOX_PLACE_COST + ", Maintenance: $" + MAILBOX_MAINTENANCE_COST + "/day)\n3 - Remove Existing Advertisement \n4 - Go Back");
+		if (tutorial) {
+			System.out.println("\n- Physical advertisements raise brand awareness in particular areas of the map.\n- Physical advertisements can be removed at any time.\n- There is no limit to simultaneous physical advertisment campaigns.");
+		}
+		String billboardTutorial = "~ PLACE BILLBOARD ~\n- Billboards improve brand awareness by 2 in tiles one row and/or column away,\n  as well as by 1 in tiles two rows and/or columns away.\n";
+		String mailboxTutorial = "~ PLACE MAILBOX ~\n- Mailboxes improve brand awareness of all houses within its block by 1.\n  A 'block' is bounded by roads and map borders.\n";
+		int input = userIntInput(1, 4, " ");
+		switch(input) {
+			case 1: placeTile(false, billboardTutorial, "Billboard", '!');
+				break;
+			case 2: placeTile(false, mailboxTutorial, "Mailbox", '#');
+				break;
+			case 3: removeAd();
+				break;
+			case 4: marketingMenu();
+				break;
+		}
+	}
+	
+	
+	private void placeBillboard(int row, int col) {
+		advertisements.put(getLocationCode(row, col), "Billboard");
+		changeAwarenessHelper(row - 2, row + 2, col - 2, col + 2, 1);
+		changeAwarenessHelper(row - 1, row + 1, col - 1, col + 1, 1);	
+		money -= BILLBOARD_PLACE_COST;
+		billboardMaintenance += BILLBOARD_MAINTENANCE_COST;
+		System.out.println("Billboard advertisement placed.");
+	}
+	
+	private void placeMailbox(int row, int col) {
+		advertisements.put(getLocationCode(row, col), "Mailbox");
+		//Find bounds 
+		int upwardDelta = 0, downwardDelta = 0, leftDelta = 0, rightDelta = 0;
+		while (!((row - upwardDelta) == 0 || board[row - upwardDelta - 1][col].type == '—')) {
+			upwardDelta++;
+		}
+		while (!((row + downwardDelta) == BOARD_SIZE - 1 || board[row + downwardDelta + 1][col].type == '—')) {
+			downwardDelta++;
+		}
+		while (!((col - leftDelta) == 0 || board[row][col - leftDelta - 1].type == '|')) {
+			leftDelta++;
+		}
+		while (!((col + rightDelta) == BOARD_SIZE - 1 || board[row][col + rightDelta + 1].type == '|')) {
+			rightDelta++;
+		}
+			
+		//Change Awareness
+		changeAwarenessHelper(row - upwardDelta, row + downwardDelta, col - leftDelta, col + rightDelta, 1);
+		money -= MAILBOX_PLACE_COST;
+		mailboxMaintenance += MAILBOX_MAINTENANCE_COST;
+		System.out.println("Mailbox advertisement placed.");
+	}
+	
+	private void removeAd() {
+		
+	}
+	
+
 	private void manageRestaurantSelector() {
 		//What Restaurant to Manage
 		System.out.println("\n~~ SELECT RESTAURANT ~~\n" + companyName + " Locations:");
-		if (tutorial) {
-			System.out.println("\n- Each staff member can handle " + STAFF_WORK + " visitors per day,\n- check reports to ensure your restaurants can handle their traffic.");
-		}
-		
+	
 		ArrayList<String> choices = new ArrayList<String>();
 		
 		int index = 1;
@@ -532,6 +622,10 @@ public class BurgerMain {
 			System.out.println(index + " - " + restaurant);
 			index++;
 			choices.add(restaurant);
+		}
+		
+		if (tutorial) {
+			System.out.println("\n- Each staff member can handle " + STAFF_WORK + " visitors per day,\n- check reports to ensure your restaurants can handle their traffic.");
 		}
 		
 		int input = userIntInput(1, restaurants.size(), " ");
@@ -542,8 +636,9 @@ public class BurgerMain {
 		System.out.println("~ MANAGE " + restaurant.location + " ~");
 		boolean loop = true;
 		while (loop) {
-			System.out.println("Staff: " + restaurant.staff + "   Daily Customer Capacity: " + (restaurant.staff * STAFF_WORK));
-			System.out.println("\n1 - Hire 1 Employee ($" + STAFF_HIRE_COST + " To Train, $" + STAFF_WAGE + " Weekly Salary)\n2 - Fire 1 Employee ($" + SEVERANCE_COST + " Severance)\n3 - Go Back");
+			System.out.println("Staff: " + restaurant.staff + "   Daily Customer Capacity: " + (restaurant.staff * STAFF_WORK) + "   Daily Wages: $" + (restaurant.staff * STAFF_WAGE));
+			System.out.println("\n1 - Hire 1 Employee ($" + STAFF_HIRE_COST + " To Train, $" + STAFF_WAGE + " Daily Salary)"
+					+ "\n2 - Fire 1 Employee ($" + SEVERANCE_COST + " Severance)\n3 - Go Back");
 			int input = userIntInput(1, 3, " ");
 			switch (input) {
 				case 1: restaurant.staff++;
@@ -599,7 +694,8 @@ public class BurgerMain {
 		}
 		System.out.print("\n");
 		if(tutorial) {
-			System.out.println("- Households with high brand awareness are perpetually aware of " + companyName + "'s food,\n- making them more likely to visit a restaurant.\n- Households with a 0 don't know " + companyName + " exists. They won't visit a restaurant. \n- Remember you can raise these values through marketing.");
+			System.out.println("- Households with high brand awareness are perpetually aware of " + companyName + "'s food,\n- making them more likely to visit a restaurant."
+					+ "\n- Households with a 0 don't know " + companyName + " exists. They won't visit a restaurant. \n- Remember you can raise these values through marketing.");
 		}
 	}
 	
@@ -614,7 +710,9 @@ public class BurgerMain {
 		}
 		System.out.print("\n");
 		if(tutorial) {
-			System.out.println("- Households with a low proximity value live close to a restaurant,\n- making them more likely to visit a restaurant.\n- However, households with a 0 live too far from a restaurant to even consider visiting.\n- In path calculation, roads cost 1 to traverse, 3 for other tiles.");
+			System.out.println("- Households with a low proximity value live close to a restaurant,\n- making them more likely to visit a restaurant."
+					+ "\n- However, households with a 0 live too far from a restaurant to even consider visiting."
+					+ "\n- In path calculation, roads and restaurants cost 1 to step into, " + TRAVERSAL_COST + " for other tiles.");
 		}
 	}
 	
@@ -651,13 +749,17 @@ public class BurgerMain {
 		System.out.print("\n");
 	}
 	
-
-	//Place a restaurant on the map
+	//Place something (restaurant, ad) on the map
 	//@param - Set required to true if restaurant MUST be placed
-	private void placeRestaurant(boolean required) {
+	private void placeTile(boolean required, String tutorialMessage, String placing, char icon) {		
 		
 		if (tutorial) {
-			System.out.println("- Building a Restaurant Costs $" + RESTAURANT_COST + ". Rent is $" + RENT + "/week.\n- Comes with 1 Staff Member, costing $" + STAFF_WAGE + "/week in wages.\n- Placing Restaurants next to roads is recommended.");
+			System.out.println(tutorialMessage);
+		}
+		
+		//Allow user to cancel
+		if (!required && !userBinaryInput("Place New " + placing + "? (Y or N)")) {
+			return;
 		}
 		
 		boolean placed = false;
@@ -672,41 +774,16 @@ public class BurgerMain {
 			int row = userIntInput(0, BOARD_SIZE, "Row:");
 		
 			if (board[row][col].type == ' ') {
-				
-				board[row][col].type = 'B';
+				board[row][col].type = icon;
 				viewBoard(false);
-				if (userBinaryInput("Place Restaurant Here? (Y or N)"))  {
-					
-					//Change Awareness for Surrounding Area
-					changeAwarenessHelper(row - 2, row + 2, col - 2, col + 2, 1);
-					changeAwarenessHelper(row - 1, row + 1, col - 1, col + 1, 1);	
-					
-					//Change Awareness for road adjacency
-					//Horizontal Below
-					if (row < (BOARD_SIZE - 1) && board[row + 1][col].type == '—') {
-						changeAwarenessHelper(row, row + 2, 0, BOARD_SIZE - 1, 1);
-					} 
-					//Horizontal Above
-					if (row > 0 && board[row - 1][col].type == '—') {
-						changeAwarenessHelper(row - 2, row, 0, BOARD_SIZE - 1, 1);
+				if (userBinaryInput("Place " + placing + " Here? (Y or N)"))  {
+					if (icon == 'B') {
+						placeRestaurant(row, col);	
+					} else if (icon == '!') {
+						placeBillboard(row, col);
+					} else if (icon == '#') {
+						placeMailbox(row, col);
 					}
-					//Vertical to the Left
-					if (col > 0 && board[row][col - 1].type == '|') {
-						changeAwarenessHelper(0, BOARD_SIZE - 1, col - 2, col, 1);
-					}
-					//Vertical to the Right
-					if (col < (BOARD_SIZE - 1) && board[row][col + 1].type == '|') {
-						changeAwarenessHelper(0, BOARD_SIZE - 1, col, col + 2, 1);
-					}
-						
-					//Add The Restaurant to the Hashmap
-					Restaurant newShop = new Restaurant(getLocationCode(row, col));
-					restaurants.put(getLocationCode(row, col) , newShop);
-						
-					//Update Proximity
-					calculateProximity();
-					
-					money -= RESTAURANT_COST;
 					placed = true;
 				} else {
 					board[row][col].type = ' ';
@@ -720,7 +797,40 @@ public class BurgerMain {
 		}
 	}
 	
-	//Recalculate Proximity Values
+	private void placeRestaurant(int row, int col) {
+		//Change Awareness for Surrounding Area
+		changeAwarenessHelper(row - 2, row + 2, col - 2, col + 2, 1);
+		changeAwarenessHelper(row - 1, row + 1, col - 1, col + 1, 1);	
+		
+		//Change Awareness for road adjacency
+		//Horizontal Below
+		if (row < (BOARD_SIZE - 1) && board[row + 1][col].type == '—') {
+			changeAwarenessHelper(row, row + 2, 0, BOARD_SIZE - 1, 1);
+		} 
+		//Horizontal Above
+		if (row > 0 && board[row - 1][col].type == '—') {
+			changeAwarenessHelper(row - 2, row, 0, BOARD_SIZE - 1, 1);
+		}
+		//Vertical to the Left
+		if (col > 0 && board[row][col - 1].type == '|') {
+			changeAwarenessHelper(0, BOARD_SIZE - 1, col - 2, col, 1);
+		}
+		//Vertical to the Right
+		if (col < (BOARD_SIZE - 1) && board[row][col + 1].type == '|') {
+			changeAwarenessHelper(0, BOARD_SIZE - 1, col, col + 2, 1);
+		}
+			
+		//Add The Restaurant to the Hashmap
+		Restaurant newShop = new Restaurant(getLocationCode(row, col));
+		restaurants.put(getLocationCode(row, col) , newShop);
+			
+		//Update Proximity
+		calculateProximity();
+		
+		money -= RESTAURANT_COST;
+	}
+	
+	//(Re)calculate Proximity Values
 	private void calculateProximity() {
 		for (int row = 0; row < BOARD_SIZE; row++) {
 			for (int col = 0; col < BOARD_SIZE; col++) {
@@ -728,9 +838,9 @@ public class BurgerMain {
 				if (current.type == '^') {
 					int[] result = {10};
 					int[] location = {0,0};
-					calculateProximityHelper(row, col, -3, result, location);
+					calculateProximityHelper(row, col, (TRAVERSAL_COST * -1) , result, location);
 					current.changeProximity(result[0]);
-					current.setNearesRestaurant(getLocationCode(location[0], location[1]));
+					current.setNearestRestaurant(getLocationCode(location[0], location[1]));
 				}
 			}
 		}
@@ -747,7 +857,7 @@ public class BurgerMain {
 		if (board[row][col].type == '|' || board[row][col].type == '—' || board[row][col].type == 'B') {
 			distance += 1;
 		} else {
-			distance += 3;
+			distance += TRAVERSAL_COST;
 		}
 		
 		//Base Case 1: At restaurant
@@ -773,8 +883,6 @@ public class BurgerMain {
 			calculateProximityHelper(row, col - 1, distance, result, location);
 		}
 	}
-	
-	
 
 	//Change Awareness of a Section, Start and Stop indices inclusive
 	//Avoids OutOfBoundsException
@@ -788,10 +896,12 @@ public class BurgerMain {
 		}
 	}
 	
+	//Convert character to integer representation
 	private int charToInt(char input) {
-		return (((int)input) - 48);
+		return (((int)input) - TO_INT);
 	}
 	
+	//Returns formatted location code "B13" for Restaurant
 	private String getLocationCode(int row, int col) {
 		return "" + ((char)(col + TO_UPPERCASE)) + row; 
 	}
@@ -820,8 +930,7 @@ public class BurgerMain {
 		}
 		return toReturn;
 	}
-	
-	
+		
 	//Return user input when specifically asking for an Integer.
 	//Lower and Upper bounds inclusive
 	private int userIntInput(int lowerBound, int upperBound, String message) {
