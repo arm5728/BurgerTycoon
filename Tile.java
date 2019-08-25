@@ -1,6 +1,7 @@
 public class Tile {
 	public char type;
 	private int awareness;
+	private int leftoverAwareness;
 	private int proximity;
 	private String nearestRestaurant;
 	private int members;
@@ -11,6 +12,7 @@ public class Tile {
 		proximity = 0;
 		nearestRestaurant = "A0";
 		members = 0;
+		leftoverAwareness = 0;
 	}
 	
 	//Get awareness value for house, or tile type otherwise
@@ -27,7 +29,10 @@ public class Tile {
 	//Value will remain between 0 and 9
 	public void changeAwareness(int change) {
 		awareness += change;
+		awareness += leftoverAwareness;
+		leftoverAwareness = 0;
 		if (awareness > 9) {
+			leftoverAwareness += awareness - 9;
 			awareness = 9;
 		} else if (awareness < 0) {
 			awareness = 0;
@@ -52,7 +57,7 @@ public class Tile {
 		proximity = value;
 	}
 	
-	public void setNearesRestaurant(String location) {
+	public void setNearestRestaurant(String location) {
 		nearestRestaurant = location;
 	}
 	
